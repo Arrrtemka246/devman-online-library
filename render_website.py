@@ -1,5 +1,6 @@
 import argparse
 import json
+from functools import partial
 from pathlib import Path
 from urllib.parse import quote
 
@@ -30,6 +31,8 @@ def on_reload(metadata_path, books_per_page):
     environment = Environment(
         loader=FileSystemLoader(PROJECT_DIR),
         autoescape=select_autoescape(['html']),
+        trim_blocks=True,
+        lstrip_blocks=True,
     )
     environment.filters['url_path'] = encode_path
     template = environment.get_template('template.html')
@@ -70,17 +73,15 @@ def main():
     args = parser.parse_args()
     metadata_path = args.metadata.resolve()
 
-    def rebuild():
-        on_reload(metadata_path, args.books_per_page)
-
+    rebuild = partial(on_reload, metadata_path, args.books_per_page)
     rebuild()
     if args.build:
         return
     server = Server()
     server.watch(str(PROJECT_DIR / 'template.html'), rebuild)
     server.watch(str(metadata_path), rebuild)
-    server.watch(str(PROJECT_DIR / 'bootstrap.min.css'))
-    server.watch(str(PROJECT_DIR / 'favicon.svg'))
+    server.watch(str(PROJECT_DIR / 'static' / 'bootstrap.min.css'))
+    server.watch(str(PROJECT_DIR / 'static' / 'favicon.svg'))
     print(f'Откройте http://127.0.0.1:{args.port}/', flush=True)
     server.serve(root=str(PROJECT_DIR), host='127.0.0.1', port=args.port, open_url_delay=None)
 
